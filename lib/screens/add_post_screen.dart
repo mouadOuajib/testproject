@@ -36,6 +36,8 @@ class _AddPostScreenState extends State<AddPostScreen> {
 
   Future<void> _selectImage(BuildContext context,
       {required ImageSource source}) async {
+    final picker = ImagePicker();
+
     if (Platform.isAndroid) {
       final deviceInfoPlugin = DeviceInfoPlugin();
       final androidInfo = await deviceInfoPlugin.androidInfo;
@@ -68,15 +70,43 @@ class _AddPostScreenState extends State<AddPostScreen> {
           return;
         }
       }
+    } else if (Platform.isIOS) {
+      if (source == ImageSource.gallery) {
+        final status = await Permission.photos.request();
 
-      final picker = ImagePicker();
-      final pickedFile = await picker.pickImage(source: source);
+        if (!status.isGranted) {
+          if (context.mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text(
+                    'Permission denied. Please grant photo library access.'),
+              ),
+            );
+          }
+          return;
+        }
+      } else if (source == ImageSource.camera) {
+        final status = await Permission.camera.request();
 
-      if (pickedFile != null) {
-        setState(() {
-          _image = File(pickedFile.path);
-        });
+        if (!status.isGranted) {
+          if (context.mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Permission denied. Please grant camera access.'),
+              ),
+            );
+          }
+          return;
+        }
       }
+    }
+
+    final pickedFile = await picker.pickImage(source: source);
+
+    if (pickedFile != null) {
+      setState(() {
+        _image = File(pickedFile.path);
+      });
     }
   }
 
